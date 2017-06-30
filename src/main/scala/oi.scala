@@ -1,132 +1,205 @@
 package bleh
 
+import java.io.{PrintWriter, StringWriter}
 import java.util
 
 import ch.qos.logback.core.Context
-import org.slf4j.{Logger, LoggerFactory, Marker}
-import net.logstash.logback.marker.Markers._
 import ch.qos.logback.core.encoder.Encoder
 import ch.qos.logback.core.status.Status
+import scala.collection.JavaConverters._
+import org.slf4j.{LoggerFactory, Marker}
 
-object oi extends App {
+trait encoders {
+
+  class PairEncoder[V](convert: V => Value) extends TypeEncoder[(String, V)] {
+    override def encode(instance: (String, V)): Seq[(String, Value)] = Seq((instance._1, convert(instance._2)))
+  }
+
+  implicit object keyedIntEncoder extends PairEncoder[Int](i => NumberValue(i))
+
+  implicit object exceptionEncoder extends TypeEncoder[Exception] {
+    override def encode(instance: Exception): Seq[(String, Value)] = {
+      val stackTrace = new StringWriter()
+      val writer = new PrintWriter(stackTrace)
+      instance.printStackTrace(writer)
+      writer.flush()
+      writer.close()
+      Seq("exceptionMessage" -> StringValue(instance.getMessage), "stackTrace" -> StringValue(new String(stackTrace.toString)))
+    }
+  }
+
+}
+
+object oi extends App with encoders {
 
   val logger = new MyLoggerImpl
 
-  logger.info("log message", "hello" -> 123)
+  logger.info("log message", "hello" -> 123, "world" -> 456, "!" -> 789)
+  logger.info("log message", new Exception("fuuuuuuuuu"))
 
 }
 
 trait MyLogger {
 
-  def info(message: String, keysAndValues: (String, Any)*): Unit
+  def info(message: => String): Unit
+
+  //scala-logging is using a macro to generate the logger https://github.com/typesafehub/scala-logging/blob/master/src/main/scala/com/typesafe/scalalogging/LoggerMacro.scala
+  def info[T1: TypeEncoder](message: => String, d1: => T1): Unit
+
+  def info[T1: TypeEncoder, T2: TypeEncoder](message: => String, d1: => T1, d2: => T2): Unit
+
+  def info[T1: TypeEncoder, T2: TypeEncoder, T3: TypeEncoder](message: => String, d1: => T1, d2: => T2, d3: => T3): Unit
 
 }
 
 class MyLoggerImpl extends MyLogger {
 
-  val logger = LoggerFactory.getLogger("oi")
+  private val logger = LoggerFactory.getLogger("oi")
 
-  override def info(message: String, keysAndValues: (String, Any)*): Unit = {
-    logger.info(new MyMarker(keysAndValues), message)
+  override def info(message: => String): Unit = {
+    if (logger.isInfoEnabled) {
+      logger.info(message)
+    }
+  }
+
+  override def info[T1: TypeEncoder](message: => String, d1: => T1): Unit = {
+    if (logger.isInfoEnabled) {
+      doInfo(message, Seq(Annotation(d1, implicitly[TypeEncoder[T1]])))
+    }
+  }
+
+  override def info[T1: TypeEncoder, T2: TypeEncoder](message: => String, d1: => T1, d2: => T2): Unit = {
+    if (logger.isInfoEnabled) {
+      doInfo(message, Seq(Annotation(d1, implicitly[TypeEncoder[T1]]), Annotation(d2, implicitly[TypeEncoder[T2]])))
+    }
+  }
+
+  override def info[T1: TypeEncoder, T2: TypeEncoder, T3: TypeEncoder](message: => String, d1: => T1, d2: => T2, d3: => T3): Unit = {
+    if (logger.isInfoEnabled) {
+      doInfo(message, Seq(Annotation(d1, implicitly[TypeEncoder[T1]]), Annotation(d2, implicitly[TypeEncoder[T2]]),
+        Annotation(d3, implicitly[TypeEncoder[T3]])))
+    }
+  }
+
+  private def doInfo(message: => String, annotations: => Seq[Annotation[_]]): Unit = {
+    logger.info(new AnnotationMarker(annotations), message)
   }
 
 }
 
-class MyMarker(val keysAndValues: Seq[(String, Any)]) extends Marker {
-  override def hasChildren: Boolean = ???
-  override def getName: String = ???
-  override def remove(reference: Marker): Boolean = ???
-  override def contains(other: Marker): Boolean = ???
-  override def contains(name: String): Boolean = ???
-  override def iterator(): util.Iterator[Marker] = ???
-  override def add(reference: Marker): Unit = ???
-  override def hasReferences: Boolean = ???
+class AnnotationMarker(val annotations: Seq[Annotation[_]]) extends Marker {
+
+  def encoded: Seq[(String, Value)] = annotations.flatMap(_.encoded)
+
+  override def hasChildren: Boolean = false
+  override def getName: String = "annotation-marker"
+  override def remove(reference: Marker): Boolean = false
+  override def contains(other: Marker): Boolean = false
+  override def contains(name: String): Boolean = false
+  override def iterator(): util.Iterator[Marker] = Iterator.empty.asJava
+  override def add(reference: Marker): Unit = ()
+  override def hasReferences: Boolean = false
 }
 
-case class Annotation[T](instance: T, encoder: TypeEncoder[T])
+case class Annotation[T](instance: T, encoder: TypeEncoder[T]) {
+
+  def encoded: Seq[(String, Value)] = encoder.encode(instance)
+
+}
 
 sealed trait Value
 
 case class StringValue(value: String) extends Value
+case class NumberValue(value: Number) extends Value
 
 trait TypeEncoder[T] {
+
   def encode(instance: T): Seq[(String, Value)]
+
 }
 
 class MyEncoder extends Encoder[ch.qos.logback.classic.spi.LoggingEvent] {
 
+  val debug = false
+
   var context: Context = _
 
   override def encode(event: ch.qos.logback.classic.spi.LoggingEvent): Array[Byte] = {
-    println("encode " + event + " [" + event.getClass + "]")
-    event.getMarker match {
-      case mm: MyMarker =>
-        println("my marker " + mm.keysAndValues)
+    if (debug) println("encode " + event + " [" + event.getClass + "]")
+
+    // for compatibility with other users of logback, get event.getArgumentArray and pass to a default formatter
+
+    val encodedData = event.getMarker match {
+      case mm: AnnotationMarker =>
+        if (debug) println("my marker " + mm.annotations)
+        mm.encoded
       case _ =>
-        println("unknown marker")
+        if (debug) println("unknown marker")
+        Seq.empty
     }
 
-    event.toString.getBytes()
+    val dataAsString = encodedData.map { case (k, v) => s"$k=$v" }.mkString(", ")
+    s"-=$event [$dataAsString]=-\n".getBytes
   }
 
   override def headerBytes(): Array[Byte] = {
-    println("headerBytes")
-    ">>>".getBytes()
+    if (debug) println("headerBytes")
+    ">>>\n".getBytes()
   }
 
   override def footerBytes(): Array[Byte] = {
-    println("footerBytes")
-    "<<<".getBytes()
+    if (debug) println("footerBytes")
+    "\n<<<\n".getBytes()
   }
 
   override def stop(): Unit = {
-    println("stop")
+    if (debug) println("stop")
   }
 
   override def isStarted: Boolean = {
-    println("isStarted")
+    if (debug) println("isStarted")
     true
   }
 
   override def start(): Unit = {
-    println("start")
+    if (debug) println("start")
   }
 
   override def addInfo(msg: String): Unit = {
-    println("addInfo " + msg)
+    if (debug) println("addInfo " + msg)
   }
 
   override def addInfo(msg: String, ex: Throwable): Unit = {
-    println("addInfo " + msg)
+    if (debug) println("addInfo " + msg)
   }
 
   override def addWarn(msg: String): Unit = {
-    println("addWarn " + msg)
+    if (debug) println("addWarn " + msg)
   }
 
   override def addWarn(msg: String, ex: Throwable): Unit = {
-    println("addWarn " + msg)
+    if (debug) println("addWarn " + msg)
   }
 
   override def addError(msg: String): Unit = {
-    println("addError " + msg)
+    if (debug) println("addError " + msg)
   }
 
   override def addError(msg: String, ex: Throwable): Unit = {
-    println("addError " + msg)
+    if (debug) println("addError " + msg)
   }
 
   override def addStatus(status: Status): Unit = {
-    println("addStatus " + status)
+    if (debug) println("addStatus " + status)
   }
 
   override def getContext: Context = {
-    println("getContext")
+    if (debug) println("getContext")
     context
   }
 
   override def setContext(context: Context): Unit = {
-    println("setContext " + context)
+    if (debug) println("setContext " + context)
     this.context = context
   }
 }
