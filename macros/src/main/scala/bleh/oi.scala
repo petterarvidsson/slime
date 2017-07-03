@@ -124,6 +124,7 @@ object helloMacro {
 }
 
 //private in the package
-class slimeLogger extends StaticAnnotation {
+
+private[bleh] class slimeLogger extends StaticAnnotation {
   def macroTransform(annottees: Any*): Any = macro helloMacro.impl
 }
