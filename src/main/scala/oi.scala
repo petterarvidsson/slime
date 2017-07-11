@@ -1,6 +1,7 @@
 package bleh
 
 import java.io.{PrintWriter, StringWriter}
+import java.nio.charset.StandardCharsets
 
 import ch.qos.logback.core.Context
 import ch.qos.logback.core.encoder.Encoder
@@ -8,22 +9,74 @@ import ch.qos.logback.core.status.Status
 
 trait encoders {
 
-  class PairEncoder[V](convert: V => Value) extends TypeEncoder[(String, V)] {
+  class KeyedValueEncoder[V](val convert: V => Value) extends TypeEncoder[(String, V)] {
     override def encode(instance: (String, V)): Seq[(String, Value)] = Seq((instance._1, convert(instance._2)))
   }
 
-  implicit object keyedIntEncoder extends PairEncoder[Int](i => NumberValue(i))
+  implicit object keyedStringEncoder extends KeyedValueEncoder[String](s => StringValue(s))
+  implicit object keyedNumberEncoder extends KeyedValueEncoder[Int](i => NumberValue(i))
+  implicit object keyedThrowableEncoder extends KeyedValueEncoder[Throwable]({ e =>
+    val stackTrace = new StringWriter()
+    val writer = new PrintWriter(stackTrace)
+    e.printStackTrace(writer)
+    writer.flush()
+    writer.close()
+    NestedValue(Seq("message" -> StringValue(e.getMessage), "stack" -> StringValue(new String(stackTrace.toString))))
+  })
 
-  implicit object exceptionEncoder extends TypeEncoder[Exception] {
-    override def encode(instance: Exception): Seq[(String, Value)] = {
-      val stackTrace = new StringWriter()
-      val writer = new PrintWriter(stackTrace)
-      instance.printStackTrace(writer)
-      writer.flush()
-      writer.close()
-      Seq("exceptionMessage" -> StringValue(instance.getMessage), "stackTrace" -> StringValue(new String(stackTrace.toString)))
-    }
+  implicit def keyedTypeEncoder[V](implicit te: TypeEncoder[V]): TypeEncoder[(String, V)] = (instance: (String, V)) => {
+    val (outer, value) = instance
+    te.encode(value).map { case (inner, encoded) => outer -> NestedValue(Seq(inner -> encoded)) }
   }
+
+  implicit object throwableEncoder extends TypeEncoder[Throwable] {
+    override def encode(instance: Throwable): Seq[(String, Value)] =
+      Seq("exception" -> keyedThrowableEncoder.convert(instance))
+  }
+
+}
+
+trait Format {
+
+  def format(message: String, values: Seq[(String, Value)]): Array[Byte]
+
+}
+
+class TextFormat extends Format {
+
+  override def format(message: String, values: Seq[(String, Value)]): Array[Byte] = {
+    values
+      .flatMap((expand _).tupled)
+      .map { case (k, v) => s"$k=${formatValue(v)}" }
+      .mkString(s"$message\t\t", ",\t", "\n")
+      .getBytes(StandardCharsets.UTF_8)
+  }
+
+  private def formatValue(value: SingleValue): String = value match {
+    case StringValue(str) => str
+    case NumberValue(num) => num.toString
+  }
+
+  private def expand(prefix: String, value: Value): Seq[(String, SingleValue)] = value match {
+    case NestedValue(values) => values.flatMap { case (k, v) => expand(prefix + "." + k, v) }
+    case s: SingleValue => Seq(prefix -> s)
+  }
+
+}
+
+class JsonFormat extends Format {
+
+  override def format(message: String, values: Seq[(String, Value)]): Array[Byte] =
+    (formatNested(("msg", StringValue(message)) +: values) + "\n").getBytes(StandardCharsets.UTF_8)
+
+  private def formatValue(value: Value): String = value match {
+    case StringValue(str) => "\"" + str.replaceAll("\n", "\\\\n").replaceAll("\t", "\\\\t") + "\""
+    case NumberValue(num) => num.toString
+    case NestedValue(values) => formatNested(values)
+  }
+
+  private def formatNested(values: Seq[(String, Value)]): String =
+    values.map { case (k, v) => "\"" + k + "\":" + formatValue(v) }.mkString("{", ",", "}")
 
 }
 
@@ -32,6 +85,8 @@ class MyEncoder extends Encoder[ch.qos.logback.classic.spi.LoggingEvent] {
   val debug = false
 
   var context: Context = _
+
+  var format: Format = new TextFormat
 
   override def encode(event: ch.qos.logback.classic.spi.LoggingEvent): Array[Byte] = {
     if (debug) println("encode " + event + " [" + event.getClass + "]")
@@ -47,18 +102,19 @@ class MyEncoder extends Encoder[ch.qos.logback.classic.spi.LoggingEvent] {
         Seq.empty
     }
 
-    val dataAsString = encodedData.map { case (k, v) => s"$k=$v" }.mkString(", ")
-    s"-=$event [$dataAsString]=-\n".getBytes
+//    val dataAsString = encodedData.map { case (k, v) => s"$k=$v" }.mkString(", ")
+//    s"-=$event [$dataAsString]=-\n".getBytes
+    format.format(event.getMessage, encodedData)
   }
 
   override def headerBytes(): Array[Byte] = {
     if (debug) println("headerBytes")
-    ">>>\n".getBytes()
+    Array.emptyByteArray
   }
 
   override def footerBytes(): Array[Byte] = {
     if (debug) println("footerBytes")
-    "\n<<<\n".getBytes()
+    Array.emptyByteArray
   }
 
   override def stop(): Unit = {
@@ -111,6 +167,16 @@ class MyEncoder extends Encoder[ch.qos.logback.classic.spi.LoggingEvent] {
     if (debug) println("setContext " + context)
     this.context = context
   }
+
+  def setFormat(name: String): Unit = {
+    if (debug) println(s"serializer is: $name")
+    format = Class.forName(name).newInstance().asInstanceOf[Format]
+  }
+
+  def setGol(string: String): Unit = {
+    println(string)
+  }
+
 }
 
 /*
@@ -261,8 +327,12 @@ object MacroLoggerTest extends App with encoders {
 
   val logger = new MacroLogger
 
-  println(logger.isInfoEnabled)
   logger.info("oi")
   logger.info("log message", "hello" -> 123, "world" -> 456, "!" -> 789)
+
+  logger.info("exception", new Exception("ex1"))
+  logger.info("exception pair", "first" -> new Exception("ex2"))
+
+  logger.info("nested", "going" -> ("down" -> ("the" -> ("rabbit" -> "hole"))))
 
 }

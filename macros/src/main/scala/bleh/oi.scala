@@ -15,11 +15,15 @@ import scala.reflect.macros.blackbox
 
 sealed trait Value
 
-case class StringValue(value: String) extends Value
-case class NumberValue(value: Number) extends Value
+sealed trait SingleValue extends Value
+
+case class StringValue(value: String) extends SingleValue
+case class NumberValue(value: Number) extends SingleValue
+
+case class NestedValue(values: Seq[(String, Value)]) extends Value
 
 
-trait TypeEncoder[T] {
+trait TypeEncoder[-T] {
 
   def encode(instance: T): Seq[(String, Value)]
 
