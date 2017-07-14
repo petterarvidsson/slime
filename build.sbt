@@ -5,7 +5,7 @@ lazy val commonSettings = Seq(
   scalaVersion := "2.12.2",
   scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature"),
   crossScalaVersions := Seq("2.11.8", "2.12.2"),
-  organization := "se.petterarvidsson",
+  organization := "com.unstablebuild",
   licenses := Seq("MIT License" -> url("https://opensource.org/licenses/MIT")),
   libraryDependencies ++= Seq(
     "org.slf4j" % "slf4j-api" % "1.7.25",

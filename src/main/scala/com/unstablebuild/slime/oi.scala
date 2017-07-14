@@ -1,4 +1,4 @@
-package bleh
+package com.unstablebuild.slime
 
 import java.io.{PrintWriter, StringWriter}
 import java.nio.charset.StandardCharsets

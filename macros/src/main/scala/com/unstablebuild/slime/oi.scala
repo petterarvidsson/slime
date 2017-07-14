@@ -1,14 +1,12 @@
-package bleh
-
+package com.unstablebuild.slime
 
 import java.util
 
 import org.slf4j.Marker
 
 import scala.annotation.StaticAnnotation
-import scala.language.experimental.macros
-import java.util
 import scala.collection.JavaConverters._
+import scala.language.experimental.macros
 import scala.reflect.macros.blackbox
 
 
@@ -129,6 +127,6 @@ object helloMacro {
 
 //private in the package
 
-private[bleh] class slimeLogger extends StaticAnnotation {
+private[slime] class slimeLogger extends StaticAnnotation {
   def macroTransform(annottees: Any*): Any = macro helloMacro.impl
 }
