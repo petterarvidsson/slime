@@ -1,53 +1,8 @@
 package com.unstablebuild.slime
 
-import java.util
-
-import org.slf4j.Marker
-
 import scala.annotation.StaticAnnotation
-import scala.collection.JavaConverters._
 import scala.language.experimental.macros
 import scala.reflect.macros.blackbox
-
-
-
-sealed trait Value
-
-sealed trait SingleValue extends Value
-
-case class StringValue(value: String) extends SingleValue
-case class NumberValue(value: Number) extends SingleValue
-
-case class NestedValue(values: Seq[(String, Value)]) extends Value
-
-
-trait TypeEncoder[-T] {
-
-  def encode(instance: T): Seq[(String, Value)]
-
-}
-
-case class AnnotatedInstance[T](instance: T, encoder: TypeEncoder[T]) {
-
-  def encoded: Seq[(String, Value)] = encoder.encode(instance)
-
-}
-
-
-class AnnotationMarker(val annotations: Seq[AnnotatedInstance[_]]) extends Marker {
-
-  def encoded: Seq[(String, Value)] = annotations.flatMap(_.encoded)
-
-  override def hasChildren: Boolean = false
-  override def getName: String = "annotation-marker"
-  override def remove(reference: Marker): Boolean = false
-  override def contains(other: Marker): Boolean = false
-  override def contains(name: String): Boolean = false
-  override def iterator(): util.Iterator[Marker] = Iterator.empty.asJava
-  override def add(reference: Marker): Unit = ()
-  override def hasReferences: Boolean = false
-
-}
 
 object LoggerMacros {
 
@@ -110,9 +65,9 @@ object LoggerMacros {
     def def_log_signature(level: Level, paramsCount: Int): String = {
       val typeEncoderClass = classOf[TypeEncoder[_]].getCanonicalName
 
-      val types = defaultOrMkString(paramsCount)("[", ", ", "]", n => s"T$n")
-      val params = defaultOrMkString(paramsCount)(", ", ", ", "", n => s"t$n: => T$n")
-      val implicits = defaultOrMkString(paramsCount)("(implicit ", ", ", ")", n => s"te$n: $typeEncoderClass[T$n]")
+      val types = generateForParams(paramsCount)("[", ", ", "]", n => s"T$n")
+      val params = generateForParams(paramsCount)(", ", ", ", "", n => s"t$n: => T$n")
+      val implicits = generateForParams(paramsCount)("(implicit ", ", ", ")", n => s"te$n: $typeEncoderClass[T$n]")
 
       s"def ${level.lowerCase} $types (message: => String $params) $implicits: Unit"
     }
@@ -122,7 +77,7 @@ object LoggerMacros {
       val annotationMarkerClass = classOf[AnnotationMarker].getCanonicalName
 
       val signature = def_log_signature(level, paramsCount)
-      val annotations = defaultOrMkString(paramsCount, default = "Seq()")("Seq(", ", ", ")", n => s"$annotationClass(t$n, te$n)")
+      val annotations = generateForParams(paramsCount, onZero = "Seq()")("Seq(", ", ", ")", n => s"$annotationClass(t$n, te$n)")
 
       val method = s"""
         $signature = {
@@ -135,15 +90,17 @@ object LoggerMacros {
       c.parse(method)
     }
 
-    private def defaultOrMkString(count: Int, default: String = "")(start: String, sep: String, end: String, each: Int => String): String = {
-      if (count == 0) default else (1 to count).map(each).mkString(start, sep, end)
+    private def generateForParams(count: Int, onZero: String = "")(start: String, sep: String, end: String, each: Int => String): String = {
+      if (count == 0) onZero else (1 to count).map(each).mkString(start, sep, end)
     }
 
   }
 
 }
 
-//private in the package
-private[slime] class slimeLogger extends StaticAnnotation {
+/**
+  * This is kept private on the package so it cannot be (easily) used externally.
+  */
+private[slime] class SlimeLogger extends StaticAnnotation {
   def macroTransform(annottees: Any*): Any = macro LoggerMacros.impl
 }
