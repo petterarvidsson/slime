@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-    <encoder class="bleh.MyEncoder" />
+    <encoder class="com.unstablebuild.slime.MyEncoder">
+      <format gol="123">com.unstablebuild.slime.JsonFormat</format>
+    </encoder>
   </appender>
   <root level="all">
     <appender-ref ref="STDOUT" />
