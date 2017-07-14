@@ -192,8 +192,6 @@ It is a Scala only library
 
  */
 
-
-
 @slimeLogger
 class MacroLogger extends Logger {}
 
