@@ -8,9 +8,7 @@ import net.logstash.logback.marker.Markers._
 import ch.qos.logback.core.encoder.Encoder
 import ch.qos.logback.core.status.Status
 
-
 object oi extends App {
-
 
   val logger = new MyLoggerImpl
 

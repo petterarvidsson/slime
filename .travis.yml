@@ -1,0 +1,17 @@
+language: scala
+scala:
+  - 2.12.1
+jdk:
+  - oraclejdk8
+
+script:
+  - sbt scalafmt::test test:scalafmt::test sbt:scalafmt::test compile test doc
+
+deploy:
+  provider: script
+  script:
+    - sbt publish
+  on:
+    repo: petterarvidsson/slime
+    tags: true
+    branch: master
