@@ -27,14 +27,14 @@ trait TypeEncoder[-T] {
 
 }
 
-case class Annotation[T](instance: T, encoder: TypeEncoder[T]) {
+case class AnnotatedInstance[T](instance: T, encoder: TypeEncoder[T]) {
 
   def encoded: Seq[(String, Value)] = encoder.encode(instance)
 
 }
 
 
-class AnnotationMarker(val annotations: Seq[Annotation[_]]) extends Marker {
+class AnnotationMarker(val annotations: Seq[AnnotatedInstance[_]]) extends Marker {
 
   def encoded: Seq[(String, Value)] = annotations.flatMap(_.encoded)
 
@@ -46,9 +46,37 @@ class AnnotationMarker(val annotations: Seq[Annotation[_]]) extends Marker {
   override def iterator(): util.Iterator[Marker] = Iterator.empty.asJava
   override def add(reference: Marker): Unit = ()
   override def hasReferences: Boolean = false
+
 }
 
-object helloMacro {
+object LoggerMacros {
+
+  val params: Seq[Int] = 0 to 22
+  val levels: Set[Level] = org.slf4j.event.Level.values().map(l => Level(l.toString.toLowerCase())).toSet
+
+  def impl(c: blackbox.Context)(annottees: c.Expr[Any]*): c.Expr[Any] = {
+    val generator = new LoggerGenerator(c)
+    import generator.c.universe._
+
+    val result = annottees.map(_.tree).headOption match {
+      case Some(q"class $name extends ..$parents { ..$body }") =>
+
+        val baseLogger = generator.val_baseLogger
+        val baseMethods = (for (level <- levels) yield generator.def_isEnabled(level)).toList
+        val loggingMethods = for (level <- levels; size <- params) yield generator.def_log(level, size)
+
+        q"""
+          class $name extends ..$parents {
+            $baseLogger
+            ..$body
+            ..$baseMethods
+            ..$loggingMethods
+          }
+        """
+    }
+
+    c.Expr[Any](result.asInstanceOf[c.Tree])
+  }
 
   case class Level(name: String) {
 
@@ -58,75 +86,64 @@ object helloMacro {
 
     def isEnabledName: String = s"is${camelCase}Enabled"
 
-
   }
 
-  val params = 0 to 22
-  val levels = org.slf4j.event.Level.values().map(l => Level(l.toString.toLowerCase())).toSet
+  class LoggerGenerator(val c: blackbox.Context) {
 
-  def impl(c: blackbox.Context)(annottees: c.Expr[Any]*): c.Expr[Any] = {
-    import c.universe.{Annotation => _, _}
-    val result = {
+    import c.universe._
 
-      annottees.map(_.tree).toList match {
-        case q"class $name extends ..$parents { ..$body }" :: Nil =>
-
-          val typeEncoderClass = classOf[TypeEncoder[_]].getCanonicalName
-          val annotationClass = classOf[Annotation[_]].getCanonicalName
-          val annotationMarkerClass = classOf[AnnotationMarker].getCanonicalName
-
-          val baseMethods = for (level <- levels) yield {
-            val signature = s"def ${level.isEnabledName}: Boolean"
-            val method = s"$signature = this.logger.${level.isEnabledName}"
-
-//            println(method)
-
-            c.parse(method)
-          }
-
-          val loggingMethods = for (level <- levels; size <- params) yield {
-
-            val types = if (size == 0) "" else (1 to size).map(n => s"T$n").mkString("[", ", ", "]")
-            val params = if (size == 0) "" else (1 to size).map(n => s"t$n: => T$n").mkString(", ", ", ", "")
-            val implicits = if (size == 0) "" else (1 to size).map(n => s"te$n: $typeEncoderClass[T$n]").mkString("(implicit ", ", ", ")")
-            val annotations = if (size == 0) "Seq()" else (1 to size).map(n => s"$annotationClass(t$n, te$n)").mkString("Seq(", ", ", ")")
-
-            val signature = s"def ${level.lowerCase} $types (message: => String $params) $implicits: Unit"
-
-            val method = s"""
-              $signature = {
-                if (this.logger.${level.isEnabledName}) {
-                  this.logger.${level.lowerCase}(new $annotationMarkerClass($annotations), message)
-                }
-              }
-            """
-
-//            println(method)
-
-            c.parse(method)
-          }
-
-          q"""
-            class $name extends ..$parents {
-
-              private val logger = org.slf4j.LoggerFactory.getLogger("oi")
-
-              ..$body
-
-              ..$baseMethods
-
-              ..$loggingMethods
-
-            }
-          """
-      }
+    def val_baseLogger: Tree = {
+      q"""private val logger = org.slf4j.LoggerFactory.getLogger("oi")"""
     }
-    c.Expr[Any](result)
+
+    def def_isEnabled_signature(level: Level): String = {
+      s"def ${level.isEnabledName}: Boolean"
+    }
+
+    def def_isEnabled(level: Level): Tree = {
+      val signature = def_isEnabled_signature(level)
+      val method = s"$signature = this.logger.${level.isEnabledName}"
+
+      c.parse(method)
+    }
+
+    def def_log_signature(level: Level, paramsCount: Int): String = {
+      val typeEncoderClass = classOf[TypeEncoder[_]].getCanonicalName
+
+      val types = defaultOrMkString(paramsCount)("[", ", ", "]", n => s"T$n")
+      val params = defaultOrMkString(paramsCount)(", ", ", ", "", n => s"t$n: => T$n")
+      val implicits = defaultOrMkString(paramsCount)("(implicit ", ", ", ")", n => s"te$n: $typeEncoderClass[T$n]")
+
+      s"def ${level.lowerCase} $types (message: => String $params) $implicits: Unit"
+    }
+
+    def def_log(level: Level, paramsCount: Int): Tree = {
+      val annotationClass = classOf[AnnotatedInstance[_]].getCanonicalName
+      val annotationMarkerClass = classOf[AnnotationMarker].getCanonicalName
+
+      val signature = def_log_signature(level, paramsCount)
+      val annotations = defaultOrMkString(paramsCount, default = "Seq()")("Seq(", ", ", ")", n => s"$annotationClass(t$n, te$n)")
+
+      val method = s"""
+        $signature = {
+          if (this.logger.${level.isEnabledName}) {
+            this.logger.${level.lowerCase}(new $annotationMarkerClass($annotations), message)
+          }
+        }
+      """
+
+      c.parse(method)
+    }
+
+    private def defaultOrMkString(count: Int, default: String = "")(start: String, sep: String, end: String, each: Int => String): String = {
+      if (count == 0) default else (1 to count).map(each).mkString(start, sep, end)
+    }
+
   }
+
 }
 
 //private in the package
-
 private[slime] class slimeLogger extends StaticAnnotation {
-  def macroTransform(annottees: Any*): Any = macro helloMacro.impl
+  def macroTransform(annottees: Any*): Any = macro LoggerMacros.impl
 }
