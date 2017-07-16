@@ -192,7 +192,7 @@ It is a Scala only library
 
  */
 
-@slimeLogger
+@SlimeLogger
 class MacroLogger extends Logger {}
 
 object MacroLoggerTest extends App with encoders {
