@@ -15,7 +15,6 @@ object LoggerMacros {
 
     val result = annottees.map(_.tree).headOption match {
       case Some(q"class $name extends ..$parents { ..$body }") =>
-
         val baseLogger = generator.val_baseLogger
         val baseMethods = (for (level <- levels) yield generator.def_isEnabled(level)).toList
         val loggingMethods = for (level <- levels; size <- params) yield generator.def_log(level, size)
@@ -77,7 +76,8 @@ object LoggerMacros {
       val annotationMarkerClass = classOf[AnnotationMarker].getCanonicalName
 
       val signature = def_log_signature(level, paramsCount)
-      val annotations = generateForParams(paramsCount, onZero = "Seq()")("Seq(", ", ", ")", n => s"$annotationClass(t$n, te$n)")
+      val annotations =
+        generateForParams(paramsCount, onZero = "Seq()")("Seq(", ", ", ")", n => s"$annotationClass(t$n, te$n)")
 
       val method = s"""
         $signature = {
@@ -90,7 +90,10 @@ object LoggerMacros {
       c.parse(method)
     }
 
-    private def generateForParams(count: Int, onZero: String = "")(start: String, sep: String, end: String, each: Int => String): String = {
+    private def generateForParams(
+      count: Int,
+      onZero: String = ""
+    )(start: String, sep: String, end: String, each: Int => String): String = {
       if (count == 0) onZero else (1 to count).map(each).mkString(start, sep, end)
     }
 
