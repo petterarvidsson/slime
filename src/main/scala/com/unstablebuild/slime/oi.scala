@@ -14,7 +14,10 @@ trait encoders {
   }
 
   implicit object keyedStringEncoder extends KeyedValueEncoder[String](s => StringValue(s))
-  implicit object keyedNumberEncoder extends KeyedValueEncoder[Int](i => NumberValue(i))
+  implicit object keyedBooleanEncoder extends KeyedValueEncoder[Boolean](c => BooleanValue(c))
+  implicit object keyedCharEncoder extends KeyedValueEncoder[Char](c => CharValue(c))
+  implicit def keyedNumberEncoder[N: Numeric]: KeyedValueEncoder[N] = new KeyedValueEncoder[N](n => NumberValue(n))
+
   implicit object keyedThrowableEncoder
       extends KeyedValueEncoder[Throwable]({ e =>
         val stackTrace = new StringWriter()
@@ -26,6 +29,12 @@ trait encoders {
           Seq("message" -> StringValue(e.getMessage), "stack" -> StringValue(new String(stackTrace.toString)))
         )
       })
+
+  implicit def symbolKeyedTypeEncoder[T](implicit te: TypeEncoder[(String, T)]): TypeEncoder[(Symbol, T)] =
+    (instance: (Symbol, T)) => {
+      val (key, value) = instance
+      te.encode(key.name -> value)
+    }
 
   implicit def keyedTypeEncoder[V](implicit te: TypeEncoder[V]): TypeEncoder[(String, V)] =
     (instance: (String, V)) => {
@@ -59,6 +68,8 @@ class TextFormat extends Format {
   private def formatValue(value: SingleValue): String = value match {
     case StringValue(str) => str
     case NumberValue(num) => num.toString
+    case CharValue(c) => c.toString
+    case BooleanValue(b) => b.toString
   }
 
   private def expand(prefix: String, value: Value): Seq[(String, SingleValue)] = value match {
@@ -77,6 +88,8 @@ class JsonFormat extends Format {
     case StringValue(str) => "\"" + str.replaceAll("\n", "\\\\n").replaceAll("\t", "\\\\t") + "\""
     case NumberValue(num) => num.toString
     case NestedValue(values) => formatNested(values)
+    case CharValue(c) => "\"" + c.toString + "\""
+    case BooleanValue(b) => b.toString
   }
 
   private def formatNested(values: Seq[(String, Value)]): String =
@@ -200,7 +213,9 @@ object MacroLoggerTest extends App with encoders {
   val logger = new MacroLogger
 
   logger.info("oi")
-  logger.info("log message", "hello" -> 123, "world" -> 456, "!" -> 789)
+  logger.info("log message", "hello" -> 123, "world" -> 456, "!" -> 789.0, "a" -> true, "b" -> 'b')
+
+  logger.info("log message", 'symbol -> 123)
 
   logger.info("exception", new Exception("ex1"))
   logger.info("exception pair", "first" -> new Exception("ex2"))
