@@ -5,7 +5,7 @@ jdk:
   - oraclejdk8
 
 script:
-  - sbt scalafmt::test */scalafmt::test test:scalafmt::test sbt:scalafmt::test clean compile test doc
+  - sbt scalafmt::test test:scalafmt::test sbt:scalafmt::test clean compile test doc
 
 deploy:
   provider: script
