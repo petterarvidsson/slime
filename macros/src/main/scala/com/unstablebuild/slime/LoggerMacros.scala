@@ -7,7 +7,7 @@ import scala.reflect.macros.blackbox
 object LoggerMacros {
 
   val params: Seq[Int] = 0 to 22
-  val levels: Set[Level] = org.slf4j.event.Level.values().map(l => Level(l.toString.toLowerCase())).toSet
+  val levels: Seq[Level] = org.slf4j.event.Level.values().map(l => Level(l.toString.toLowerCase()))
 
   def impl(c: blackbox.Context)(annottees: c.Expr[Any]*): c.Expr[Any] = {
     val generator = new LoggerGenerator(c)
@@ -16,7 +16,7 @@ object LoggerMacros {
     val result = annottees.map(_.tree).headOption match {
       case Some(q"class $name extends ..$parents { ..$body }") =>
         val baseLogger = generator.val_baseLogger
-        val baseMethods = (for (level <- levels) yield generator.def_isEnabled(level)).toList
+        val baseMethods = for (level <- levels) yield generator.def_isEnabled(level)
         val loggingMethods = for (level <- levels; size <- params) yield generator.def_log(level, size)
 
         q"""
@@ -30,6 +30,28 @@ object LoggerMacros {
     }
 
     c.Expr[Any](result.asInstanceOf[c.Tree])
+  }
+
+  def interface(c: blackbox.Context): c.Expr[Array[String]] = {
+    val generator = new LoggerGenerator(c)
+    import c.universe._
+
+    val baseSignatures = for (level <- levels) yield generator.def_isEnabled_signature(level)
+    val loggingSignatures = for (level <- levels; size <- params) yield generator.def_log_signature(level, size)
+
+    val source =
+      s"""
+        trait Logger {
+          ${baseSignatures.mkString("", ";\n", ";\n")}
+          ${loggingSignatures.mkString("", ";\n", ";\n")}
+        }
+       """
+
+    // They are split into lines to avoid problems with maximum string sizes
+    // https://stackoverflow.com/questions/17382067/scala-long-strings-error
+    val prettyPrintedLines = c.universe.showCode(c.parse(source)).split("\n")
+
+    c.Expr(q"$prettyPrintedLines")
   }
 
   case class Level(name: String) {

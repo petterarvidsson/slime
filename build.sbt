@@ -36,6 +36,12 @@ lazy val macros = project
   .settings(commonSettings: _*)
   .settings(name := "macros")
 
+lazy val tools = project
+  .in(file("tools"))
+  .settings(commonSettings: _*)
+  .dependsOn(macros)
+  .settings(name := "tools")
+
 lazy val root = project
   .in(file("."))
   .settings(commonSettings: _*)
