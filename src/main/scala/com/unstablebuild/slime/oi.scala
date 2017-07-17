@@ -5,20 +5,21 @@ import java.nio.charset.StandardCharsets
 import ch.qos.logback.core.Context
 import ch.qos.logback.core.encoder.Encoder
 import ch.qos.logback.core.status.Status
+import ch.qos.logback.classic.spi.LoggingEvent
 
 trait Format {
 
-  def format(message: String, values: Seq[(String, Value)]): Array[Byte]
+  def format(event: LoggingEvent, values: Seq[(String, Value)]): Array[Byte]
 
 }
 
 class TextFormat extends Format {
 
-  override def format(message: String, values: Seq[(String, Value)]): Array[Byte] = {
+  override def format(event: LoggingEvent, values: Seq[(String, Value)]): Array[Byte] = {
     values
       .flatMap((expand _).tupled)
       .map { case (k, v) => s"$k=${formatValue(v)}" }
-      .mkString(s"$message\t\t", ",\t", "\n")
+      .mkString(s"${event.getLevel} ${event.getMessage}\t\t", ",\t", "\n")
       .getBytes(StandardCharsets.UTF_8)
   }
 
@@ -34,8 +35,10 @@ class TextFormat extends Format {
 
 class JsonFormat extends Format {
 
-  override def format(message: String, values: Seq[(String, Value)]): Array[Byte] =
-    (formatNested(("msg", StringValue(message)) +: values) + "\n").getBytes(StandardCharsets.UTF_8)
+  override def format(event: LoggingEvent, values: Seq[(String, Value)]): Array[Byte] = {
+    val base = Seq("msg" -> StringValue(event.getMessage), "level" -> StringValue(event.getLevel.toString))
+    (formatNested(base ++ values) + "\n").getBytes(StandardCharsets.UTF_8)
+  }
 
   private def formatValue(value: Value): String = value match {
     case SeqValue(values) => values.map(formatValue).mkString("[", ",", "]")
@@ -51,7 +54,7 @@ class JsonFormat extends Format {
 
 }
 
-class SlimeEncoder extends Encoder[ch.qos.logback.classic.spi.LoggingEvent] {
+class SlimeEncoder extends Encoder[LoggingEvent] {
 
   val debug = false
 
@@ -59,7 +62,7 @@ class SlimeEncoder extends Encoder[ch.qos.logback.classic.spi.LoggingEvent] {
 
   var format: Format = new TextFormat
 
-  override def encode(event: ch.qos.logback.classic.spi.LoggingEvent): Array[Byte] = {
+  override def encode(event: LoggingEvent): Array[Byte] = {
     if (debug) println("encode " + event + " [" + event.getClass + "]")
 
     // for compatibility with other users of logback, get event.getArgumentArray and pass to a default formatter
@@ -75,7 +78,7 @@ class SlimeEncoder extends Encoder[ch.qos.logback.classic.spi.LoggingEvent] {
 
 //    val dataAsString = encodedData.map { case (k, v) => s"$k=$v" }.mkString(", ")
 //    s"-=$event [$dataAsString]=-\n".getBytes
-    format.format(event.getMessage, encodedData)
+    format.format(event, encodedData)
   }
 
   override def headerBytes(): Array[Byte] = {
