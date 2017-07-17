@@ -34,16 +34,16 @@ trait KeyedEncoders {
     new KeyedValueEncoder[Map[Symbol, V]](map => NestedValue(map.map { case (k, v) => k.name -> te.convert(v) }.toSeq))
 
   implicit object keyedThrowableEncoder
-    extends KeyedValueEncoder[Throwable]({ e =>
-      val stackTrace = new StringWriter()
-      val writer = new PrintWriter(stackTrace)
-      e.printStackTrace(writer)
-      writer.flush()
-      writer.close()
-      NestedValue(
-        Seq("message" -> StringValue(e.getMessage), "stack" -> StringValue(new String(stackTrace.toString)))
-      )
-    })
+      extends KeyedValueEncoder[Throwable]({ e =>
+        val stackTrace = new StringWriter()
+        val writer = new PrintWriter(stackTrace)
+        e.printStackTrace(writer)
+        writer.flush()
+        writer.close()
+        NestedValue(
+          Seq("message" -> StringValue(e.getMessage), "stack" -> StringValue(new String(stackTrace.toString)))
+        )
+      })
 
   implicit def symbolKeyedTypeEncoder[T](implicit te: TypeEncoder[(String, T)]): TypeEncoder[(Symbol, T)] =
     (instance: (Symbol, T)) => {
