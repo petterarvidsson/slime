@@ -26,8 +26,14 @@ trait KeyedEncoders {
 
   implicit def keyedSeqEncoder[T](implicit te: KeyedValueEncoder[T]): KeyedValueEncoder[Seq[T]] =
     new KeyedValueEncoder[Seq[T]](seq => SeqValue(seq.map(te.convert)))
+  implicit def keyedSeqTypeEncoder[T](implicit te: TypeEncoder[T]): KeyedValueEncoder[Seq[T]] =
+    new KeyedValueEncoder[Seq[T]](seq => SeqValue(seq.map(te.encode).map(NestedValue)))
+
   implicit def keyedSetEncoder[T](implicit te: KeyedValueEncoder[T]): KeyedValueEncoder[Set[T]] =
     new KeyedValueEncoder[Set[T]](seq => SeqValue(seq.map(te.convert).toSeq))
+  implicit def keyedSetTypeEncoder[T](implicit te: TypeEncoder[T]): KeyedValueEncoder[Set[T]] =
+    new KeyedValueEncoder[Set[T]](seq => SeqValue(seq.map(te.encode).map(NestedValue).toSeq))
+
   implicit def keyedMapEncoder[V](implicit te: KeyedValueEncoder[V]): KeyedValueEncoder[Map[String, V]] =
     new KeyedValueEncoder[Map[String, V]](map => NestedValue(map.mapValues(te.convert).toSeq))
   implicit def symbolKeyedMapEncoder[V](implicit te: KeyedValueEncoder[V]): KeyedValueEncoder[Map[Symbol, V]] =

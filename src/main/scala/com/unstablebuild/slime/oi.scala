@@ -173,6 +173,10 @@ object MacroLoggerTest extends App with Encoders {
   logger.info("map", "ages" -> Map("me" -> 10, "you" -> 12))
   logger.info("map", "ages" -> Map('me -> 10, 'you -> 12))
 
+  logger.info("sequence", "numbers" -> Seq("vai" -> 123))
+  logger.info("sequence", "numbers" -> Set("foi" -> 789))
+  logger.info("sequence", "numbers" -> Map("is" -> Map("nested" -> Map("down" -> true, "up" -> false))))
+
   logger.info("exception", new Exception("ex1"))
   logger.info("exception pair", "first" -> new Exception("ex2"))
 
