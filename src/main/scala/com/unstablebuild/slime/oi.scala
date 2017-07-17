@@ -92,7 +92,7 @@ class JsonFormat extends Format {
 
 }
 
-class MyEncoder extends Encoder[ch.qos.logback.classic.spi.LoggingEvent] {
+class SlimeEncoder extends Encoder[ch.qos.logback.classic.spi.LoggingEvent] {
 
   val debug = false
 
@@ -183,10 +183,6 @@ class MyEncoder extends Encoder[ch.qos.logback.classic.spi.LoggingEvent] {
   def setFormat(name: String): Unit = {
     if (debug) println(s"serializer is: $name")
     format = Class.forName(name).newInstance().asInstanceOf[Format]
-  }
-
-  def setGol(string: String): Unit = {
-    println(string)
   }
 
 }
