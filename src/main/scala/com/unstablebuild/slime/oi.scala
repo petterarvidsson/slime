@@ -65,12 +65,7 @@ class TextFormat extends Format {
       .getBytes(StandardCharsets.UTF_8)
   }
 
-  private def formatValue(value: SingleValue): String = value match {
-    case StringValue(str) => str
-    case NumberValue(num) => num.toString
-    case CharValue(c) => c.toString
-    case BooleanValue(b) => b.toString
-  }
+  private def formatValue(value: SingleValue): String = SingleValue.unapply(value).mkString
 
   private def expand(prefix: String, value: Value): Seq[(String, SingleValue)] = value match {
     case NestedValue(values) => values.flatMap { case (k, v) => expand(prefix + "." + k, v) }
@@ -87,9 +82,9 @@ class JsonFormat extends Format {
   private def formatValue(value: Value): String = value match {
     case StringValue(str) => "\"" + str.replaceAll("\n", "\\\\n").replaceAll("\t", "\\\\t") + "\""
     case NumberValue(num) => num.toString
-    case NestedValue(values) => formatNested(values)
     case CharValue(c) => "\"" + c.toString + "\""
     case BooleanValue(b) => b.toString
+    case NestedValue(values) => formatNested(values)
   }
 
   private def formatNested(values: Seq[(String, Value)]): String =
