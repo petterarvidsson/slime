@@ -25,6 +25,7 @@ class TextFormat extends Format {
   private def formatValue(value: SingleValue): String = SingleValue.unapply(value).mkString
 
   private def expand(prefix: String, value: Value): Seq[(String, SingleValue)] = value match {
+    case SeqValue(values) => Seq(prefix -> StringValue(values.mkString("[", ",", "]")))
     case NestedValue(values) => values.flatMap { case (k, v) => expand(prefix + "." + k, v) }
     case s: SingleValue => Seq(prefix -> s)
   }
@@ -37,6 +38,7 @@ class JsonFormat extends Format {
     (formatNested(("msg", StringValue(message)) +: values) + "\n").getBytes(StandardCharsets.UTF_8)
 
   private def formatValue(value: Value): String = value match {
+    case SeqValue(values) => values.map(formatValue).mkString("[", ",", "]")
     case StringValue(str) => "\"" + str.replaceAll("\n", "\\\\n").replaceAll("\t", "\\\\t") + "\""
     case NumberValue(num) => num.toString
     case CharValue(c) => "\"" + c.toString + "\""
@@ -164,6 +166,12 @@ object MacroLoggerTest extends App with Encoders {
   logger.info("log message", "hello" -> 123, "world" -> 456, "!" -> 789.0, "a" -> true, "b" -> 'b')
 
   logger.info("log message", 'symbol -> 123)
+  logger.info("log message", 'symbol -> 'to_symbol)
+
+  logger.info("sequence", "numbers" -> Seq(1, 2, 3))
+  logger.info("set", "chars" -> Set('a', 'b', 'c'))
+  logger.info("map", "ages" -> Map("me" -> 10, "you" -> 12))
+  logger.info("map", "ages" -> Map('me -> 10, 'you -> 12))
 
   logger.info("exception", new Exception("ex1"))
   logger.info("exception pair", "first" -> new Exception("ex2"))
