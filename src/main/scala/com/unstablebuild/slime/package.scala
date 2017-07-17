@@ -1,5 +1,3 @@
 package com.unstablebuild
 
-package object slime extends Encoders {
-
-}
+package object slime extends Encoders {}
