@@ -2,7 +2,7 @@
 <configuration>
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <encoder class="com.unstablebuild.slime.SlimeEncoder">
-      <format>com.unstablebuild.slime.JsonFormat</format>
+      <format class="com.unstablebuild.slime.JsonFormat" />
     </encoder>
   </appender>
   <root level="all">

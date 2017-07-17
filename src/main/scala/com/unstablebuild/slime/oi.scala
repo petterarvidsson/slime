@@ -142,9 +142,9 @@ class SlimeEncoder extends Encoder[LoggingEvent] {
     this.context = context
   }
 
-  def setFormat(name: String): Unit = {
-    if (debug) println(s"serializer is: $name")
-    format = Class.forName(name).newInstance().asInstanceOf[Format]
+  def setFormat(format: Format): Unit = {
+    if (debug) println(s"serializer is: ${format.getClass}")
+    this.format = format
   }
 
 }
