@@ -177,6 +177,26 @@ object MacroLoggerTest extends App with Encoders {
   val logger = new MacroLogger
 
   logger.info("oi")
+  logger.info("oi", "and" -> "tchau")
+
+  locally {
+    // could drop the first field and just use a type encoder that will transform a string into a message
+
+    implicit object stringEncoder extends TypeEncoder[String] {
+      override def encode(instance: String): Seq[(String, Value)] =
+        Seq("message" -> StringValue(instance))
+    }
+
+    implicit object symbolEncoder extends TypeEncoder[Symbol] {
+      override def encode(instance: Symbol): Seq[(String, Value)] =
+        Seq("message" -> StringValue(instance.name))
+    }
+
+    logger.info("oi", "oi")
+    logger.info("oi", 'oi_there)
+  }
+
+
   logger.info("log message", "hello" -> 123, "world" -> 456, "!" -> 789.0, "a" -> true, "b" -> 'b')
 
   logger.info("log message", 'symbol -> 123)
