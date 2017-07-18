@@ -63,10 +63,8 @@ class SlimeEncoder extends Encoder[LoggingEvent] {
 
   var fields: Seq[String] = Seq("level", "message")
 
-  val fieldExtractors: Map[String, LoggingEvent => Value] = Map(
-    "level" -> (e => StringValue(e.getLevel.toString)),
-    "message" -> (e => StringValue(e.getMessage))
-  )
+  val fieldExtractors: Map[String, LoggingEvent => Value] =
+    Map("level" -> (e => StringValue(e.getLevel.toString)), "message" -> (e => StringValue(e.getMessage)))
 
   override def encode(event: LoggingEvent): Array[Byte] = {
     if (debug) println("encode " + event + " [" + event.getClass + "]")
@@ -195,7 +193,6 @@ object MacroLoggerTest extends App with Encoders {
     logger.info("oi", "oi")
     logger.info("oi", 'oi_there)
   }
-
 
   logger.info("log message", "hello" -> 123, "world" -> 456, "!" -> 789.0, "a" -> true, "b" -> 'b')
 
