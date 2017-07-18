@@ -22,8 +22,8 @@ class Encoder extends LogbackEncoder[LoggingEvent] {
     Map(
       "level" -> (e => StringValue(e.getLevel.toString)),
       "message" -> (e => StringValue(e.getMessage)),
-      "threadName" -> (e => StringValue(e.getThreadName)),
-      "loggerName" -> (e => StringValue(e.getLoggerName)),
+      "thread" -> (e => StringValue(e.getThreadName)),
+      "logger" -> (e => StringValue(e.getLoggerName)),
       "mdc" -> (e => NestedValue(e.getMDCPropertyMap.asScala.mapValues(StringValue).toSeq)),
       "timestamp" -> (e => NumberValue(e.getTimeStamp))
     )
