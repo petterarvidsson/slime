@@ -1,15 +1,12 @@
 package com.unstablebuild.slime
 
-import java.nio.charset.StandardCharsets
-
+import ch.qos.logback.classic.spi.LoggingEvent
 import ch.qos.logback.core.Context
-import ch.qos.logback.core.encoder.Encoder
+import ch.qos.logback.core.encoder.{Encoder => LogbackEncoder}
+import ch.qos.logback.core.status.Status
+import com.unstablebuild.slime.format.Text
 
 import scala.collection.JavaConverters._
-import ch.qos.logback.core.status.Status
-import ch.qos.logback.core.encoder.{Encoder => LogbackEncoder}
-import ch.qos.logback.classic.spi.LoggingEvent
-import com.unstablebuild.slime.format.Text
 
 trait Format {
 
