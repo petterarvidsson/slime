@@ -1,5 +1,9 @@
 package com.unstablebuild.slime
 
+import com.unstablebuild.slime.gen.MacroLogger
+
+import scala.reflect.ClassTag
+
 trait Logger {
   def isErrorEnabled: Boolean;
   def isWarnEnabled: Boolean;
@@ -2622,4 +2626,20 @@ trait Logger {
     te20: com.unstablebuild.slime.TypeEncoder[T20],
     te21: com.unstablebuild.slime.TypeEncoder[T21],
     te22: com.unstablebuild.slime.TypeEncoder[T22]): Unit
+}
+
+object Logger {
+
+  def apply[T: ClassTag](): Logger = {
+    apply(implicitly[ClassTag[T]].runtimeClass)
+  }
+
+  def apply(clazz: Class[_]): Logger = {
+    apply(clazz.getName)
+  }
+
+  def apply(name: String): Logger = {
+    new MacroLogger(name)
+  }
+
 }

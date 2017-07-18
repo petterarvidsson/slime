@@ -8,12 +8,6 @@ import com.unstablebuild.slime.format.Text
 
 import scala.collection.JavaConverters._
 
-trait Format {
-
-  def format(values: Seq[(String, Value)]): Array[Byte]
-
-}
-
 class Encoder extends LogbackEncoder[LoggingEvent] {
 
   val debug = false
@@ -123,62 +117,5 @@ class Encoder extends LogbackEncoder[LoggingEvent] {
     if (debug) println("setFields " + allFields)
     this.fields = allFields.split(",").map(_.toLowerCase.trim)
   }
-
-}
-
-/*
-
-We implement against Logback
-Can log to different formats (text, JSON, YAML, XML, ...)
-Can accept maps, case classes, keys and values, ...
-It is a Scala only library
-
- */
-
-@SlimeLogger
-class MacroLogger extends Logger {}
-
-object MacroLoggerTest extends App with Encoders {
-
-  val logger = new MacroLogger
-
-  logger.info("oi")
-  logger.info("oi", "and" -> "tchau")
-
-  locally {
-    // could drop the first field and just use a type encoder that will transform a string into a message
-
-    implicit object stringEncoder extends TypeEncoder[String] {
-      override def encode(instance: String): Seq[(String, Value)] =
-        Seq("message" -> StringValue(instance))
-    }
-
-    implicit object symbolEncoder extends TypeEncoder[Symbol] {
-      override def encode(instance: Symbol): Seq[(String, Value)] =
-        Seq("message" -> StringValue(instance.name))
-    }
-
-    logger.info("oi", "oi")
-    logger.info("oi", 'oi_there)
-  }
-
-  logger.info("log message", "hello" -> 123, "world" -> 456, "!" -> 789.0, "a" -> true, "b" -> 'b')
-
-  logger.info("log message", 'symbol -> 123)
-  logger.info("log message", 'symbol -> 'to_symbol)
-
-  logger.info("sequence", "numbers" -> Seq(1, 2, 3))
-  logger.info("set", "chars" -> Set('a', 'b', 'c'))
-  logger.info("map", "ages" -> Map("me" -> 10, "you" -> 12))
-  logger.info("map", "ages" -> Map('me -> 10, 'you -> 12))
-
-  logger.info("sequence", "numbers" -> Seq("vai" -> 123))
-  logger.info("sequence", "numbers" -> Set("foi" -> 789))
-  logger.info("sequence", "numbers" -> Map("is" -> Map("nested" -> Map("down" -> true, "up" -> false))))
-
-  logger.info("exception", new Exception("ex1"))
-  logger.info("exception pair", "first" -> new Exception("ex2"))
-
-  logger.info("nested", "going" -> ("down" -> ("the" -> ("rabbit" -> "hole"))))
 
 }

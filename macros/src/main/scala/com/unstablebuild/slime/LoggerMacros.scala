@@ -20,7 +20,7 @@ object LoggerMacros {
         val loggingMethods = for (level <- levels; size <- params) yield generator.def_log(level, size)
 
         q"""
-          class $name extends ..$parents {
+          class $name(val name: String) extends ..$parents {
             $baseLogger
             ..$body
             ..$baseMethods
@@ -69,7 +69,7 @@ object LoggerMacros {
     import c.universe._
 
     def val_baseLogger: Tree = {
-      q"""private val logger = org.slf4j.LoggerFactory.getLogger("oi")"""
+      q"""private val logger = org.slf4j.LoggerFactory.getLogger(name)"""
     }
 
     def def_isEnabled_signature(level: Level): String = {
