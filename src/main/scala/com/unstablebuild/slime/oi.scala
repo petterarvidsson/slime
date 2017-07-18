@@ -9,17 +9,17 @@ import ch.qos.logback.classic.spi.LoggingEvent
 
 trait Format {
 
-  def format(event: LoggingEvent, values: Seq[(String, Value)]): Array[Byte]
+  def format(values: Seq[(String, Value)]): Array[Byte]
 
 }
 
 class TextFormat extends Format {
 
-  override def format(event: LoggingEvent, values: Seq[(String, Value)]): Array[Byte] = {
+  override def format(values: Seq[(String, Value)]): Array[Byte] = {
     values
       .flatMap((expand _).tupled)
       .map { case (k, v) => s"$k=${formatValue(v)}" }
-      .mkString(s"${event.getLevel} ${event.getMessage}\t\t", ",\t", "\n")
+      .mkString("", ",\t", "\n")
       .getBytes(StandardCharsets.UTF_8)
   }
 
@@ -35,9 +35,8 @@ class TextFormat extends Format {
 
 class JsonFormat extends Format {
 
-  override def format(event: LoggingEvent, values: Seq[(String, Value)]): Array[Byte] = {
-    val base = Seq("msg" -> StringValue(event.getMessage), "level" -> StringValue(event.getLevel.toString))
-    (formatNested(base ++ values) + "\n").getBytes(StandardCharsets.UTF_8)
+  override def format(values: Seq[(String, Value)]): Array[Byte] = {
+    (formatNested(values) + "\n").getBytes(StandardCharsets.UTF_8)
   }
 
   private def formatValue(value: Value): String = value match {
@@ -62,6 +61,13 @@ class SlimeEncoder extends Encoder[LoggingEvent] {
 
   var format: Format = new TextFormat
 
+  var fields: Seq[String] = Seq("level", "message")
+
+  val fieldExtractors: Map[String, LoggingEvent => Value] = Map(
+    "level" -> (e => StringValue(e.getLevel.toString)),
+    "message" -> (e => StringValue(e.getMessage))
+  )
+
   override def encode(event: LoggingEvent): Array[Byte] = {
     if (debug) println("encode " + event + " [" + event.getClass + "]")
 
@@ -76,9 +82,9 @@ class SlimeEncoder extends Encoder[LoggingEvent] {
         Seq.empty
     }
 
-//    val dataAsString = encodedData.map { case (k, v) => s"$k=$v" }.mkString(", ")
-//    s"-=$event [$dataAsString]=-\n".getBytes
-    format.format(event, encodedData)
+    val baseValues = fields.flatMap(f => fieldExtractors.get(f).map(extract => f -> extract(event)))
+
+    format.format(baseValues ++ encodedData)
   }
 
   override def headerBytes(): Array[Byte] = {
@@ -143,8 +149,13 @@ class SlimeEncoder extends Encoder[LoggingEvent] {
   }
 
   def setFormat(format: Format): Unit = {
-    if (debug) println(s"serializer is: ${format.getClass}")
+    if (debug) println(s"setFormat ${format.getClass}")
     this.format = format
+  }
+
+  def setFields(allFields: String): Unit = {
+    if (debug) println("setFields " + allFields)
+    this.fields = allFields.split(",").map(_.toLowerCase.trim)
   }
 
 }
