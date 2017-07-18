@@ -1,6 +1,8 @@
-package com.unstablebuild.slime
+package com.unstablebuild.slime.examples
 
-object LoggerExamples extends App with Encoders {
+import com.unstablebuild.slime.{Logger, StringValue, TypeEncoder, Value}
+
+object LoggerExamples extends App {
 
   val logger = Logger("hi")
 
