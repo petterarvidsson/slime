@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets
 
 import ch.qos.logback.core.Context
 import ch.qos.logback.core.encoder.Encoder
+import scala.collection.JavaConverters._
 import ch.qos.logback.core.status.Status
 import ch.qos.logback.classic.spi.LoggingEvent
 
@@ -64,7 +65,14 @@ class SlimeEncoder extends Encoder[LoggingEvent] {
   var fields: Seq[String] = Seq("level", "message")
 
   val fieldExtractors: Map[String, LoggingEvent => Value] =
-    Map("level" -> (e => StringValue(e.getLevel.toString)), "message" -> (e => StringValue(e.getMessage)))
+    Map(
+      "level" -> (e => StringValue(e.getLevel.toString)),
+      "message" -> (e => StringValue(e.getMessage)),
+      "threadName" -> (e => StringValue(e.getThreadName)),
+      "loggerName" -> (e => StringValue(e.getLoggerName)),
+      "mdc" -> (e => NestedValue(e.getMDCPropertyMap.asScala.mapValues(StringValue).toSeq)),
+      "timestamp" -> (e => NumberValue(e.getTimeStamp))
+    )
 
   override def encode(event: LoggingEvent): Array[Byte] = {
     if (debug) println("encode " + event + " [" + event.getClass + "]")
