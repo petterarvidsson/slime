@@ -17,10 +17,6 @@ trait Format {
 
 }
 
-
-
-
-
 class Encoder extends LogbackEncoder[LoggingEvent] {
 
   val debug = false

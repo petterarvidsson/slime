@@ -2,7 +2,7 @@ package com.unstablebuild.slime.format
 
 import java.nio.charset.StandardCharsets
 
-import com.unstablebuild.slime.{BooleanValue, CharValue, Format, NestedValue, NumberValue, SeqValue, StringValue, Value}
+import com.unstablebuild.slime._
 
 class Json extends Format {
 
