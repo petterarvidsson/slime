@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-    <encoder class="com.unstablebuild.slime.SlimeEncoder">
-      <format class="com.unstablebuild.slime.JsonFormat" />
+    <encoder class="com.unstablebuild.slime.Encoder">
+      <format class="com.unstablebuild.slime.format.Json" />
       <fields>level,message</fields>
     </encoder>
   </appender>

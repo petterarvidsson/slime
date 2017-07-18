@@ -4,9 +4,12 @@ import java.nio.charset.StandardCharsets
 
 import ch.qos.logback.core.Context
 import ch.qos.logback.core.encoder.Encoder
+
 import scala.collection.JavaConverters._
 import ch.qos.logback.core.status.Status
+import ch.qos.logback.core.encoder.{Encoder => LogbackEncoder}
 import ch.qos.logback.classic.spi.LoggingEvent
+import com.unstablebuild.slime.format.Text
 
 trait Format {
 
@@ -14,53 +17,17 @@ trait Format {
 
 }
 
-class TextFormat extends Format {
 
-  override def format(values: Seq[(String, Value)]): Array[Byte] = {
-    values
-      .flatMap((expand _).tupled)
-      .map { case (k, v) => s"$k=${formatValue(v)}" }
-      .mkString("", ",\t", "\n")
-      .getBytes(StandardCharsets.UTF_8)
-  }
 
-  private def formatValue(value: SingleValue): String = SingleValue.unapply(value).mkString
 
-  private def expand(prefix: String, value: Value): Seq[(String, SingleValue)] = value match {
-    case SeqValue(values) => Seq(prefix -> StringValue(values.mkString("[", ",", "]")))
-    case NestedValue(values) => values.flatMap { case (k, v) => expand(prefix + "." + k, v) }
-    case s: SingleValue => Seq(prefix -> s)
-  }
 
-}
-
-class JsonFormat extends Format {
-
-  override def format(values: Seq[(String, Value)]): Array[Byte] = {
-    (formatNested(values) + "\n").getBytes(StandardCharsets.UTF_8)
-  }
-
-  private def formatValue(value: Value): String = value match {
-    case SeqValue(values) => values.map(formatValue).mkString("[", ",", "]")
-    case StringValue(str) => "\"" + str.replaceAll("\n", "\\\\n").replaceAll("\t", "\\\\t") + "\""
-    case NumberValue(num) => num.toString
-    case CharValue(c) => "\"" + c.toString + "\""
-    case BooleanValue(b) => b.toString
-    case NestedValue(values) => formatNested(values)
-  }
-
-  private def formatNested(values: Seq[(String, Value)]): String =
-    values.map { case (k, v) => "\"" + k + "\":" + formatValue(v) }.mkString("{", ",", "}")
-
-}
-
-class SlimeEncoder extends Encoder[LoggingEvent] {
+class Encoder extends LogbackEncoder[LoggingEvent] {
 
   val debug = false
 
   var context: Context = _
 
-  var format: Format = new TextFormat
+  var format: Format = new Text
 
   var fields: Seq[String] = Seq("level", "message")
 
