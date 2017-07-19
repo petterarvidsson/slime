@@ -27,38 +27,29 @@ object LoggerMacros {
             ..$loggingMethods
           }
         """
-    }
+      case Some(q"abstract trait $name extends ..$parents") =>
 
-    c.Expr[Any](result.asInstanceOf[c.Tree])
-  }
+        val companion = annottees.map(_.tree).collectFirst {
+          case obj @ q"object $_ extends $_ { ..$_ }" =>
+            obj
+        }
 
-  def interface(c: blackbox.Context): c.Expr[Array[String]] = {
-    val generator = new LoggerGenerator(c)
-    import c.universe._
+        val baseSignatures = for (level <- levels) yield generator.def_isEnabled_signature(level)
+        val loggingSignatures = for (level <- levels; size <- params) yield generator.def_log_signature(level, size)
 
-    val baseSignatures = for (level <- levels) yield generator.def_isEnabled_signature(level)
-    val loggingSignatures = for (level <- levels; size <- params) yield generator.def_log_signature(level, size)
-
-    val source =
-      s"""
-        package com.unstablebuild.slime {
-          trait Logger {
+        val code = s"""
+          trait $name {
             ${baseSignatures.mkString("", ";\n", ";\n")}
             ${loggingSignatures.mkString("", ";\n", ";\n")}
           }
-          object Logger {
-            def apply[T]()(implicit ct: scala.reflect.ClassTag[T]): Logger = apply(ct.runtimeClass)
-            def apply[T](clazz: Class[T]): Logger = apply(clazz.getName)
-            def apply(name: String): Logger = new com.unstablebuild.slime.gen.MacroLogger(name)
-          }
-        }
-       """
 
-    // They are split into lines to avoid problems with maximum string sizes
-    // https://stackoverflow.com/questions/17382067/scala-long-strings-error
-    val prettyPrintedLines = c.universe.showCode(c.parse(source)).split("\n")
+          ${companion.map(t => showCode(t.asInstanceOf[Tree])).mkString}
+        """.stripMargin
 
-    c.Expr(q"$prettyPrintedLines")
+        c.parse(code)
+    }
+
+    c.Expr[Any](result.asInstanceOf[c.Tree])
   }
 
   case class Level(name: String) {
