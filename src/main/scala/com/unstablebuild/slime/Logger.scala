@@ -9,8 +9,8 @@ trait Logger
 
 object Logger {
 
-  def apply[T]()(implicit ct: ClassTag[T]): Logger = apply(ct.runtimeClass);
-  def apply[T](clazz: Class[T]): Logger = apply(clazz.getName);
+  def apply[T]()(implicit ct: ClassTag[T]): Logger = apply(ct.runtimeClass)
+  def apply[T](clazz: Class[T]): Logger = apply(clazz.getName)
   def apply(name: String): Logger = new MacroLogger(name)
 
 }
