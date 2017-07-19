@@ -41,9 +41,16 @@ object LoggerMacros {
 
     val source =
       s"""
-        trait Logger {
-          ${baseSignatures.mkString("", ";\n", ";\n")}
-          ${loggingSignatures.mkString("", ";\n", ";\n")}
+        package com.unstablebuild.slime {
+          trait Logger {
+            ${baseSignatures.mkString("", ";\n", ";\n")}
+            ${loggingSignatures.mkString("", ";\n", ";\n")}
+          }
+          object Logger {
+            def apply[T]()(implicit ct: scala.reflect.ClassTag[T]): Logger = apply(ct.runtimeClass)
+            def apply[T](clazz: Class[T]): Logger = apply(clazz.getName)
+            def apply(name: String): Logger = new com.unstablebuild.slime.gen.MacroLogger(name)
+          }
         }
        """
 
