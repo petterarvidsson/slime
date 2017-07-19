@@ -1,10 +1,10 @@
 import ReleaseTransformations._
 
-lazy val commonSettings = Seq(
+val commonSettings = Seq(
   version := "0.2.0",
   scalaVersion := "2.12.2",
   scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature"),
-  crossScalaVersions := Seq("2.11.8", "2.12.2"),
+  crossScalaVersions := Seq("2.12.2"),
   organization := "com.unstablebuild",
   licenses := Seq("MIT License" -> url("https://opensource.org/licenses/MIT")),
   libraryDependencies ++= Seq(
