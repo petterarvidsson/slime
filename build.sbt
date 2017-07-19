@@ -8,9 +8,10 @@ val commonSettings = Seq(
   organization := "com.unstablebuild",
   licenses := Seq("MIT License" -> url("https://opensource.org/licenses/MIT")),
   libraryDependencies ++= Seq(
-    "ch.qos.logback" % "logback-classic" % "1.2.2" % "provided",
     "org.scalameta" %% "scalameta" % "1.8.0",
-    "org.scala-lang" % "scala-reflect" % scalaVersion.value
+    "org.scala-lang" % "scala-reflect" % scalaVersion.value,
+    "ch.qos.logback" % "logback-classic" % "1.2.2" % "provided,test",
+    "org.scalatest" %% "scalatest" % "3.0.1" % "test"
   ),
   addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full),
   releaseProcess := Seq[ReleaseStep](
