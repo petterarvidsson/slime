@@ -34,10 +34,10 @@ lazy val commonSettings = Seq(
 lazy val macros = project
   .in(file("macros"))
   .settings(commonSettings: _*)
-  .settings(name := "macros")
+  .settings(name := "slime-macros")
 
 lazy val root = project
   .in(file("."))
   .settings(commonSettings: _*)
   .dependsOn(macros)
-  .settings(name := "blah")
+  .settings(name := "slime")
