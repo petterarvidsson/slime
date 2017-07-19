@@ -1,6 +1,6 @@
 package com.unstablebuild.slime
 
-import com.unstablebuild.slime.gen.MacroLogger
+import com.unstablebuild.slime.impl.MacroLogger
 
 import scala.reflect.ClassTag
 

@@ -1,4 +1,4 @@
-package com.unstablebuild.slime.gen
+package com.unstablebuild.slime.impl
 
 import com.unstablebuild.slime.{Logger, SlimeLogger}
 
