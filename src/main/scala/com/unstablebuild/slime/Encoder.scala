@@ -21,7 +21,7 @@ class Encoder extends LogbackEncoder[LoggingEvent] {
   val fieldExtractors: Map[String, LoggingEvent => Value] =
     Map(
       "level" -> (e => StringValue(e.getLevel.toString)),
-      "message" -> (e => StringValue(e.getMessage)),
+      "message" -> (e => StringValue(e.getFormattedMessage)),
       "thread" -> (e => StringValue(e.getThreadName)),
       "logger" -> (e => StringValue(e.getLoggerName)),
       "mdc" -> (e => NestedValue(e.getMDCPropertyMap.asScala.mapValues(StringValue).toSeq)),
@@ -30,8 +30,6 @@ class Encoder extends LogbackEncoder[LoggingEvent] {
 
   override def encode(event: LoggingEvent): Array[Byte] = {
     if (debug) println("encode " + event + " [" + event.getClass + "]")
-
-    // for compatibility with other users of logback, get event.getArgumentArray and pass to a default formatter
 
     val encodedData = event.getMarker match {
       case mm: AnnotationMarker =>
