@@ -1,6 +1,6 @@
 package com.unstablebuild.slime.examples
 
-import com.unstablebuild.slime.{Logger, StringValue, TypeEncoder, Value}
+import com.unstablebuild.slime.{Encodable, Logger, NumberValue, StringValue, TypeEncoder, Value}
 
 object LoggerExamples extends App {
 
@@ -44,5 +44,12 @@ object LoggerExamples extends App {
   logger.info("exception pair", "first" -> new Exception("ex2"))
 
   logger.info("nested", "going" -> ("down" -> ("the" -> ("rabbit" -> "hole"))))
+
+  case class SomeType(int: Int, str: String) extends Encodable {
+    override def encoded: Seq[(String, Value)] = Seq("int" -> NumberValue(int), "str" -> StringValue(str))
+  }
+
+  logger.info("encodable", SomeType(1, "a"))
+  logger.info("encodable", "keyed" -> SomeType(2, "b"))
 
 }

@@ -9,6 +9,10 @@ trait Encoders extends KeyedEncoders {
       Seq("exception" -> keyedThrowableEncoder.convert(instance))
   }
 
+  implicit object encodableEncoder extends TypeEncoder[Encodable] {
+    override def encode(instance: Encodable): Seq[(String, Value)] = instance.encoded
+  }
+
 }
 
 trait KeyedEncoders {
