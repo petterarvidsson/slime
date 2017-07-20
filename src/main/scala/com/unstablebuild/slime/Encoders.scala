@@ -17,10 +17,6 @@ trait Encoders extends KeyedEncoders {
 
 trait KeyedEncoders {
 
-  class KeyedValueEncoder[V](val convert: V => Value) extends TypeEncoder[(String, V)] {
-    override def encode(instance: (String, V)): Seq[(String, Value)] = Seq((instance._1, convert(instance._2)))
-  }
-
   implicit object keyedStringEncoder extends KeyedValueEncoder[String](s => StringValue(s))
   implicit object keyedBooleanEncoder extends KeyedValueEncoder[Boolean](c => BooleanValue(c))
   implicit object keyedCharEncoder extends KeyedValueEncoder[Char](c => CharValue(c))

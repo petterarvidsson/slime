@@ -28,7 +28,6 @@ object LoggerMacros {
           }
         """
       case Some(q"abstract trait $name") =>
-
         val companion = annottees.map(_.tree).collectFirst {
           case obj @ q"object $_ extends $_ { ..$_ }" =>
             obj
