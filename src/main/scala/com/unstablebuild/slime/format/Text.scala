@@ -6,11 +6,13 @@ import com.unstablebuild.slime.{Format, NestedValue, SeqValue, SingleValue, Stri
 
 class Text extends Format {
 
+  private var separator = ",\t"
+
   override def format(values: Seq[(String, Value)]): Array[Byte] = {
     values
       .flatMap((expand _).tupled)
       .map { case (k, v) => s"$k=${formatValue(v)}" }
-      .mkString("", ",\t", "\n")
+      .mkString("", separator, "\n")
       .getBytes(StandardCharsets.UTF_8)
   }
 
@@ -21,5 +23,7 @@ class Text extends Format {
     case NestedValue(values) => values.flatMap { case (k, v) => expand(prefix + "." + k, v) }
     case s: SingleValue => Seq(prefix -> s)
   }
+
+  def setSeparator(separator: String): Unit = this.separator = separator.replaceAll("\\\\t", "\t")
 
 }
