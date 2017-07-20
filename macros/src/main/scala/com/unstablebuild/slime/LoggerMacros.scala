@@ -38,7 +38,7 @@ object LoggerMacros {
         val loggingSignatures = for (level <- levels; size <- params) yield generator.def_log_signature(level, size)
 
         val code = s"""
-          trait $name {
+          trait $name extends ..$parents" {
             ${baseSignatures.mkString("", ";\n", ";\n")}
             ${loggingSignatures.mkString("", ";\n", ";\n")}
           }
