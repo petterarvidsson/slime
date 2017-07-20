@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+  <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
     <encoder class="com.unstablebuild.slime.Encoder">
       <format class="com.unstablebuild.slime.format.Json" />
       <fields>level,logger,thread,message</fields>
     </encoder>
   </appender>
   <root level="all">
-    <appender-ref ref="STDOUT" />
+    <appender-ref ref="console" />
   </root>
 </configuration>

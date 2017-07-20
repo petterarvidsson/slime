@@ -60,7 +60,7 @@ trait KeyedEncoders {
   implicit def keyedTypeEncoder[V](implicit te: TypeEncoder[V]): TypeEncoder[(String, V)] =
     (instance: (String, V)) => {
       val (outer, value) = instance
-      te.encode(value).map { case (inner, encoded) => outer -> NestedValue(Seq(inner -> encoded)) }
+      Seq(outer -> NestedValue(te.encode(value)))
     }
 
 }
