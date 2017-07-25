@@ -7,7 +7,7 @@ import scala.reflect.macros.blackbox
 object LoggerMacros {
 
   val params: Seq[Int] = 0 to 22
-  val levels: Set[Level] = org.slf4j.event.Level.values().map(l => Level(l.toString.toLowerCase())).toSet
+  val levels: Seq[Level] = org.slf4j.event.Level.values().map(l => Level(l.toString.toLowerCase()))
 
   def impl(c: blackbox.Context)(annottees: c.Expr[Any]*): c.Expr[Any] = {
     val generator = new LoggerGenerator(c)
@@ -15,22 +15,69 @@ object LoggerMacros {
 
     val result = annottees.map(_.tree).headOption match {
       case Some(q"class $name extends ..$parents { ..$body }") =>
-
         val baseLogger = generator.val_baseLogger
-        val baseMethods = (for (level <- levels) yield generator.def_isEnabled(level)).toList
+        val baseMethods = for (level <- levels) yield generator.def_isEnabled(level)
         val loggingMethods = for (level <- levels; size <- params) yield generator.def_log(level, size)
 
         q"""
-          class $name extends ..$parents {
+          class $name(val name: String) extends ..$parents {
             $baseLogger
             ..$body
             ..$baseMethods
             ..$loggingMethods
           }
         """
+      case Some(q"abstract trait $name") =>
+        val companion = annottees.map(_.tree).collectFirst {
+          case obj @ q"object $_ extends $_ { ..$_ }" =>
+            obj
+        }
+
+        val baseSignatures = for (level <- levels) yield generator.def_isEnabled_signature(level)
+        val loggingSignatures = for (level <- levels; size <- params) yield generator.def_log_signature(level, size)
+
+        val code = s"""
+          trait $name {
+            ${baseSignatures.mkString("", ";\n", ";\n")}
+            ${loggingSignatures.mkString("", ";\n", ";\n")}
+          }
+
+          ${companion.map(t => showCode(t.asInstanceOf[Tree])).mkString}
+        """.stripMargin
+
+        c.parse(code)
     }
 
     c.Expr[Any](result.asInstanceOf[c.Tree])
+  }
+
+  def interface(c: blackbox.Context): c.Expr[Array[String]] = {
+    val generator = new LoggerGenerator(c)
+    import c.universe._
+
+    val baseSignatures = for (level <- levels) yield generator.def_isEnabled_signature(level)
+    val loggingSignatures = for (level <- levels; size <- params) yield generator.def_log_signature(level, size)
+
+    val source =
+      s"""
+        package com.unstablebuild.slime {
+          trait Logger {
+            ${baseSignatures.mkString("", ";\n", ";\n")}
+            ${loggingSignatures.mkString("", ";\n", ";\n")}
+          }
+          object Logger {
+            def apply[T]()(implicit ct: scala.reflect.ClassTag[T]): Logger = apply(ct.runtimeClass)
+            def apply[T](clazz: Class[T]): Logger = apply(clazz.getName)
+            def apply(name: String): Logger = new com.unstablebuild.slime.gen.MacroLogger(name)
+          }
+        }
+       """
+
+    // They are split into lines to avoid problems with maximum string sizes
+    // https://stackoverflow.com/questions/17382067/scala-long-strings-error
+    val prettyPrintedLines = c.universe.showCode(c.parse(source)).split("\n")
+
+    c.Expr(q"$prettyPrintedLines")
   }
 
   case class Level(name: String) {
@@ -48,7 +95,7 @@ object LoggerMacros {
     import c.universe._
 
     def val_baseLogger: Tree = {
-      q"""private val logger = org.slf4j.LoggerFactory.getLogger("oi")"""
+      q"""private val logger = org.slf4j.LoggerFactory.getLogger(name)"""
     }
 
     def def_isEnabled_signature(level: Level): String = {
@@ -77,7 +124,8 @@ object LoggerMacros {
       val annotationMarkerClass = classOf[AnnotationMarker].getCanonicalName
 
       val signature = def_log_signature(level, paramsCount)
-      val annotations = generateForParams(paramsCount, onZero = "Seq()")("Seq(", ", ", ")", n => s"$annotationClass(t$n, te$n)")
+      val annotations =
+        generateForParams(paramsCount, onZero = "Seq()")("Seq(", ", ", ")", n => s"$annotationClass(t$n, te$n)")
 
       val method = s"""
         $signature = {
@@ -90,7 +138,10 @@ object LoggerMacros {
       c.parse(method)
     }
 
-    private def generateForParams(count: Int, onZero: String = "")(start: String, sep: String, end: String, each: Int => String): String = {
+    private def generateForParams(
+      count: Int,
+      onZero: String = ""
+    )(start: String, sep: String, end: String, each: Int => String): String = {
       if (count == 0) onZero else (1 to count).map(each).mkString(start, sep, end)
     }
 
