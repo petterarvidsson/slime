@@ -2,9 +2,7 @@ package com.unstablebuild.slime.examples
 
 import com.unstablebuild.slime._
 
-object LoggerExamples extends App with TypeEncoders {
-
-  val logger = Logger("hi")
+object LoggerExamples extends App with LazyLogging {
 
   logger.info("oi")
   logger.info("oi", "and" -> "tchau")
