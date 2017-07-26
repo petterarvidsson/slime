@@ -14,7 +14,6 @@ class Json extends Format {
     case SeqValue(values) => values.map(formatValue).mkString("[", ",", "]")
     case StringValue(str) => "\"" + str.replaceAll("\n", "\\\\n").replaceAll("\t", "\\\\t") + "\""
     case NumberValue(num) => num.toString
-    case CharValue(c) => "\"" + c.toString + "\""
     case BooleanValue(b) => b.toString
     case NestedValue(values) => formatNested(values)
   }
