@@ -4,7 +4,7 @@ import java.io.{PrintWriter, StringWriter}
 
 import scala.collection.GenTraversable
 
-trait Encoders extends LowPriorityEncoders {
+trait TypeEncoders extends LowPriorityTypeEncoders {
 
   implicit val stringValuable: Valuable[String] = s => StringValue(s)
   implicit val symbolValuable: Valuable[Symbol] = s => StringValue(s.name)
@@ -51,7 +51,7 @@ trait Encoders extends LowPriorityEncoders {
 }
 
 // https://stackoverflow.com/a/1887678
-trait LowPriorityEncoders {
+trait LowPriorityTypeEncoders {
 
   implicit def keyOtherEncoder[K: Keyable, V: TypeEncoder]: TypeEncoder[(K, V)] = (instance: (K, V)) => {
     Seq(implicitly[Keyable[K]].get(instance._1) -> NestedValue(implicitly[TypeEncoder[V]].encode(instance._2)))

@@ -5,7 +5,7 @@ import org.scalatest.{FlatSpec, MustMatchers}
 import scala.collection.{immutable, mutable}
 import scala.util.control.NoStackTrace
 
-class EncodersTest extends FlatSpec with MustMatchers with Encoders {
+class TypeEncodersTest extends FlatSpec with MustMatchers with TypeEncoders {
 
   it must "encode keyed and non-keyed exceptions" in {
     val exception = new Exception("BOOM!!!") with NoStackTrace
