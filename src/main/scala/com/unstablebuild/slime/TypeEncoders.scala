@@ -44,10 +44,6 @@ trait TypeEncoders extends LowPriorityTypeEncoders {
                                                   collection: Collection[(K, V), C]): TypeEncoder[C[(K, V)]] =
     t => collection.traversable(t).flatMap(te.encode).toSeq
 
-  implicit object encodableEncoder extends TypeEncoder[Encodable] {
-    override def encode(instance: Encodable): Seq[(String, Value)] = instance.encoded
-  }
-
 }
 
 // https://stackoverflow.com/a/1887678

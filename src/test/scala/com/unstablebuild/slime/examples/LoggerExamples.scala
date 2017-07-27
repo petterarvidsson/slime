@@ -43,11 +43,4 @@ object LoggerExamples extends App with LazyLogging {
 
   logger.info("nested", "going" -> ("down" -> ("the" -> ("rabbit" -> "hole"))))
 
-  case class SomeType(int: Int, str: String) extends Encodable {
-    override def encoded: Seq[(String, Value)] = Seq("int" -> NumberValue(int), "str" -> StringValue(str))
-  }
-
-  logger.info("encodable", SomeType(1, "a"))
-  logger.info("encodable", "keyed" -> SomeType(2, "b"))
-
 }

@@ -98,18 +98,6 @@ class TypeEncodersTest extends FlatSpec with MustMatchers with TypeEncoders {
     encode("hello" -> Option("hi")) must equal(Seq("hello" -> SeqValue(Seq(StringValue("hi")))))
   }
 
-  it must "encode encodable types" in {
-
-    case class MyPair(int: Int, str: String) extends Encodable {
-      override def encoded: Seq[(String, Value)] = Seq("int" -> NumberValue(int), "str" -> StringValue(str))
-    }
-
-    encode(MyPair(1, "a")) must equal(Seq("int" -> NumberValue(1), "str" -> StringValue("a")))
-    encode("keyed" -> MyPair(2, "b")) must equal(
-      Seq("keyed" -> NestedValue(Seq("int" -> NumberValue(2), "str" -> StringValue("b"))))
-    )
-  }
-
   def encode[T](instance: T)(implicit te: TypeEncoder[T]): Seq[(String, Value)] =
     te.encode(instance)
 
