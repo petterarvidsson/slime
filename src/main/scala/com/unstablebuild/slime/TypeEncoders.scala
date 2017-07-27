@@ -23,18 +23,17 @@ trait TypeEncoders extends LowPriorityTypeEncoders {
   implicit val stringKey: Keyable[String] = (s: String) => s
   implicit val symbolKey: Keyable[Symbol] = (s: Symbol) => s.name
 
-  implicit def traversableCollection[A, C[_] <: GenTraversable[_]]: Collection[A, C] =
-    (traversable: C[A]) => traversable.seq.asInstanceOf[Traversable[A]]
+  implicit def traversableCollection[V, C[_] <: GenTraversable[_]]: Collection[V, C] =
+    (traversable: C[V]) => traversable.seq.asInstanceOf[Traversable[V]]
 
-  implicit def arrayCollection[A]: Collection[A, Array] =
-    (array: Array[A]) => array.toTraversable
+  implicit def arrayCollection[V]: Collection[V, Array] =
+    (array: Array[V]) => array.toTraversable
 
-  implicit def optionCollection[A]: Collection[A, Option] =
-    (opt: Option[A]) => opt.toTraversable
+  implicit def optionCollection[V]: Collection[V, Option] =
+    (opt: Option[V]) => opt.toTraversable
 
-  implicit def keyValueEncoder[K: Keyable, V: Valuable]: TypeEncoder[(K, V)] = (instance: (K, V)) => {
-    Seq(implicitly[Keyable[K]].get(instance._1) -> implicitly[Valuable[V]].get(instance._2))
-  }
+  implicit def keyValueEncoder[K: Keyable, V: Valuable]: TypeEncoder[(K, V)] =
+    (instance: (K, V)) => Seq(implicitly[Keyable[K]].get(instance._1) -> implicitly[Valuable[V]].get(instance._2))
 
   implicit def traversableValuable[V, C[_]](implicit value: Valuable[V],
                                             collection: Collection[V, C]): Valuable[C[V]] =
@@ -58,14 +57,14 @@ trait LowPriorityTypeEncoders {
 
 }
 
-trait Keyable[T] {
-  def get(key: T): String
+trait Keyable[K] {
+  def get(key: K): String
 }
 
-trait Valuable[-T] {
-  def get(instance: T): Value
+trait Valuable[-V] {
+  def get(instance: V): Value
 }
 
-trait Collection[A, C[_]] {
-  def traversable(collection: C[A]): Traversable[A]
+trait Collection[V, C[_]] {
+  def traversable(collection: C[V]): Traversable[V]
 }
