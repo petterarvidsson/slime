@@ -1,6 +1,6 @@
 package com.unstablebuild.slime
 
-trait Logging {
+trait Logging extends TypeEncoders {
 
   protected def logger: Logger
 
