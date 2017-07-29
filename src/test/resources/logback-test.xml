@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
+
+  <appender name="memory" class="com.unstablebuild.slime.MemoryAppender" />
+  <logger name="com.unstablebuild.slime.LoggerTest" level="trace" additivity="false">
+    <appender-ref ref="memory" />
+  </logger>
+  <logger name="com.unstablebuild.slime.LoggerTest.Level" level="info" additivity="false">
+    <appender-ref ref="memory" />
+  </logger>
+
   <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
     <encoder class="com.unstablebuild.slime.Encoder">
       <format class="com.unstablebuild.slime.format.Json" />
@@ -9,4 +18,5 @@
   <root level="all">
     <appender-ref ref="console" />
   </root>
+
 </configuration>
