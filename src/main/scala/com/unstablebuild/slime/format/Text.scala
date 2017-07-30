@@ -19,11 +19,20 @@ class Text extends Format {
   private def formatValue(value: SingleValue): String = SingleValue.unapply(value).mkString
 
   private def expand(prefix: String, value: Value): Seq[(String, SingleValue)] = value match {
-    case SeqValue(values) => Seq(prefix -> StringValue(values.mkString("[", ",", "]")))
-    case NestedValue(values) => values.flatMap { case (k, v) => expand(prefix + "." + k, v) }
+    case seq: SeqValue => Seq(prefix -> StringValue(formatSeq(prefix, seq)))
+    case NestedValue(values) => values.flatMap { case (k, v) => expand(s"$prefix.$k", v) }
     case s: SingleValue => Seq(prefix -> s)
   }
 
-  def setSeparator(separator: String): Unit = this.separator = separator.replaceAll("\\\\t", "\t")
+  private def formatSeq(prefix: String, seq: SeqValue): String = {
+    val strings = seq.values.map {
+      case SingleValue(v) => v.toString
+      case other => expand("", other).map { case (k, v) => s"$k=${formatValue(v)}" }.mkString("{", ",", "}")
+    }
+    strings.mkString("[", ",", "]")
+  }
+
+  def setSeparator(separator: String): Unit =
+    this.separator = separator.replaceAll("\\\\t", "\t").replaceAll("\\\\n", "\n").replaceAll("\\\\r", "\r")
 
 }
