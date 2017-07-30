@@ -2,9 +2,9 @@ import ReleaseTransformations._
 
 val commonSettings = Seq(
   version := "0.2.0",
-  scalaVersion := "2.12.2",
+  scalaVersion := "2.12.3",
   scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature"),
-  crossScalaVersions := Seq("2.12.2"),
+  crossScalaVersions := Seq("2.12.3"),
   organization := "com.unstablebuild",
   licenses := Seq("MIT License" -> url("https://opensource.org/licenses/MIT")),
   libraryDependencies ++= Seq(
