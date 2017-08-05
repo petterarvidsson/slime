@@ -2,6 +2,9 @@ package com.unstablebuild.slime
 
 import java.io.{PrintWriter, StringWriter}
 
+import shapeless._
+import shapeless.labelled.FieldType
+
 import scala.collection.GenTraversable
 import scala.language.higherKinds
 
@@ -46,6 +49,8 @@ trait TypeEncoders extends LowPriorityTypeEncoders {
 
 }
 
+object TypeEncoders extends TypeEncoders
+
 // https://stackoverflow.com/a/1887678
 trait LowPriorityTypeEncoders {
 
@@ -55,6 +60,17 @@ trait LowPriorityTypeEncoders {
 
   implicit def throwableEncoder(implicit throwableValuable: Valuable[Throwable]): TypeEncoder[Throwable] =
     instance => Seq("exception" -> throwableValuable.get(instance))
+
+  implicit val hnilEncoder: TypeEncoder[HNil] =
+    _ => Seq.empty
+
+  implicit def hlistEncoder[K <: Symbol, H, T <: HList](implicit wit: Witness.Aux[K],
+                                                        hEncoder: Lazy[TypeEncoder[(String, H)]],
+                                                        tEncoder: TypeEncoder[T]): TypeEncoder[FieldType[K, H] :: T] =
+    hlist => hEncoder.value.encode(wit.value.name -> hlist.head) ++ tEncoder.encode(hlist.tail)
+
+  implicit def genericEncoder[T, R](implicit gen: LabelledGeneric.Aux[T, R], enc: TypeEncoder[R]): TypeEncoder[T] =
+    obj => enc.encode(gen.to(obj))
 
 }
 
