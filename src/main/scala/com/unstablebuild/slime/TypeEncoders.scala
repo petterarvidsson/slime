@@ -3,6 +3,7 @@ package com.unstablebuild.slime
 import java.io.{PrintWriter, StringWriter}
 
 import scala.collection.GenTraversable
+import scala.language.higherKinds
 
 trait TypeEncoders extends LowPriorityTypeEncoders {
 

@@ -6,7 +6,7 @@ import org.slf4j.Marker
 
 import scala.collection.JavaConverters._
 
-class AnnotationMarker(val annotations: Seq[AnnotatedInstance[_]]) extends Marker {
+case class AnnotationMarker(annotations: Seq[AnnotatedInstance[_]]) extends Marker {
 
   def encoded: Seq[(String, Value)] = annotations.flatMap(_.encoded)
 
