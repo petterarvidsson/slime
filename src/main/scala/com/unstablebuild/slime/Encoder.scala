@@ -10,14 +10,14 @@ class Encoder extends EncoderBase[LoggingEvent] {
 
   private val debug = false
 
-  private var format: Format = new Text
+  var format: Format = new Text
 
-  private var fields: Seq[String] = Seq("level", "message")
+  var fields: Seq[String] = Seq("level", "message")
 
   override def encode(event: LoggingEvent): Array[Byte] = {
     doDebug(s"encode $event [${event.getClass}]")
 
-    val encodedData = event.getMarker match {
+    val values = event.getMarker match {
       case mm: AnnotationMarker =>
         doDebug(s"marker ${mm.annotations}")
         mm.encoded
@@ -26,9 +26,15 @@ class Encoder extends EncoderBase[LoggingEvent] {
         Seq.empty
     }
 
-    val baseValues = fields.flatMap(f => Encoder.fieldExtractors.get(f).map(extract => f -> extract(event)))
+    format(event, values)
+  }
 
-    format.format(baseValues ++ encodedData)
+  def format(event: LoggingEvent, values: Seq[(String, Value)]): Array[Byte] = {
+    format.format(extractFields(event) ++ values)
+  }
+
+  def extractFields(event: LoggingEvent): Seq[(String, Value)] = {
+    fields.flatMap(f => Encoder.fieldExtractors.get(f).map(extract => f -> extract(event)))
   }
 
   override def headerBytes(): Array[Byte] = {
