@@ -43,4 +43,8 @@ object LoggerExamples extends App with LazyLogging {
 
   logger.info("nested", "going" -> ("down" -> ("the" -> ("rabbit" -> "hole"))))
 
+  case class Hello(name: String)
+
+  logger.info("hello", "nicknames" -> Map("lucas" -> Hello("Lucas"), "leonardo" -> Hello("Leo")))
+
 }
