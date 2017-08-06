@@ -11,7 +11,8 @@ val commonSettings = Seq(
     "org.scalameta" %% "scalameta" % "1.8.0",
     "org.scala-lang" % "scala-reflect" % scalaVersion.value,
     "ch.qos.logback" % "logback-classic" % "1.2.3" % "provided,test",
-    "org.scalatest" %% "scalatest" % "3.0.1" % "test"
+    "org.scalatest" %% "scalatest" % "3.0.1" % "test",
+    "com.typesafe.play" %% "play-json" % "2.6.0" % "test"
   ),
   addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full),
   releaseProcess := Seq[ReleaseStep](
