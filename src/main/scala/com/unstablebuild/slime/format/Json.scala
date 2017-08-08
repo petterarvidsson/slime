@@ -4,7 +4,7 @@ import java.nio.charset.StandardCharsets
 
 import com.unstablebuild.slime._
 
-class Json extends Format {
+class Json extends SimpleFormat {
 
   override def format(values: Seq[(String, Value)]): Array[Byte] =
     formatValue(NestedValue(values))(StringBuilder.newBuilder).append("\n").toString().getBytes(StandardCharsets.UTF_8)
