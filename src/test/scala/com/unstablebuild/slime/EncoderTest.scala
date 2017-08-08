@@ -17,7 +17,7 @@ class EncoderTest extends FlatSpec with MustMatchers { self =>
 
     val annotations = Seq(AnnotatedInstance.from("one" -> 1), AnnotatedInstance.from("two" -> 2))
     encoder.setFields("level")
-    encoder.encode(event(marker = new AnnotationMarker(annotations)))
+    encoder.encode(event(marker = AnnotationMarker(annotations)))
 
     format.receivedValues must equal(
       Seq("level" -> StringValue("TRACE"), "one" -> NumberValue(1), "two" -> NumberValue(2))
@@ -42,10 +42,12 @@ class EncoderTest extends FlatSpec with MustMatchers { self =>
   }
 
   it must "add timestamp" in new encoderContext {
-    encoder.setFields("timestamp")
+    encoder.setFields("timestamp,ts")
     encoder.encode(event(ts = 12345L))
 
-    format.receivedValues must equal(Seq("timestamp" -> NumberValue(12345L)))
+    format.receivedValues must equal(
+      Seq("timestamp" -> NumberValue(12345L), "ts" -> StringValue("1970-01-01T03:25:45Z"))
+    )
   }
 
   it must "add thread and logger" in new encoderContext {
@@ -76,7 +78,7 @@ class EncoderTest extends FlatSpec with MustMatchers { self =>
     event
   }
 
-  class RecodingFormat extends Format {
+  class RecodingFormat extends SimpleFormat {
     private val allValues = mutable.ListBuffer.empty[Seq[(String, Value)]]
 
     override def format(values: Seq[(String, Value)]): Array[Byte] = {

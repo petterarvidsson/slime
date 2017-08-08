@@ -10,6 +10,7 @@ val commonSettings = Seq(
   libraryDependencies ++= Seq(
     "org.scalameta" %% "scalameta" % "1.8.0",
     "org.scala-lang" % "scala-reflect" % scalaVersion.value,
+    "com.chuusai" %% "shapeless" % "2.3.2",
     "ch.qos.logback" % "logback-classic" % "1.2.3" % "provided,test",
     "org.scalatest" %% "scalatest" % "3.0.1" % "test"
   ),

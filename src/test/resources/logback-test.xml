@@ -11,7 +11,7 @@
 
   <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
     <encoder class="com.unstablebuild.slime.Encoder">
-      <format class="com.unstablebuild.slime.format.Json" />
+      <format class="com.unstablebuild.slime.format.ColoredText" />
       <fields>level,logger,thread,message</fields>
     </encoder>
   </appender>

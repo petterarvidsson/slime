@@ -1,5 +1,8 @@
 package com.unstablebuild.slime
 
+import java.time.{Instant, ZoneOffset}
+import java.time.format.DateTimeFormatter
+
 import ch.qos.logback.classic.spi.LoggingEvent
 import ch.qos.logback.core.encoder.EncoderBase
 import com.unstablebuild.slime.format.Text
@@ -14,8 +17,10 @@ class Encoder extends EncoderBase[LoggingEvent] {
 
   var fields: Seq[String] = Seq("level", "message")
 
+  var fieldExtractors: Map[String, LoggingEvent => Value] = Encoder.fieldExtractors
+
   override def encode(event: LoggingEvent): Array[Byte] = {
-    doDebug(s"encode $event [${event.getClass}]")
+    doDebug(s"encode $event")
 
     val values = event.getMarker match {
       case mm: AnnotationMarker =>
@@ -30,7 +35,7 @@ class Encoder extends EncoderBase[LoggingEvent] {
   }
 
   def format(event: LoggingEvent, values: Seq[(String, Value)]): Array[Byte] = {
-    format.format(extractFields(event) ++ values)
+    format.format(extractFields(event), values)
   }
 
   def extractFields(event: LoggingEvent): Seq[(String, Value)] = {
@@ -64,6 +69,8 @@ class Encoder extends EncoderBase[LoggingEvent] {
 
 object Encoder {
 
+  private val dateFormatter = DateTimeFormatter.ISO_ZONED_DATE_TIME.withZone(ZoneOffset.UTC)
+
   val fieldExtractors: Map[String, LoggingEvent => Value] =
     Map(
       "level" -> (e => StringValue(e.getLevel.toString)),
@@ -71,7 +78,8 @@ object Encoder {
       "thread" -> (e => StringValue(e.getThreadName)),
       "logger" -> (e => StringValue(e.getLoggerName)),
       "mdc" -> (e => NestedValue(e.getMDCPropertyMap.asScala.mapValues(StringValue).toSeq)),
-      "timestamp" -> (e => NumberValue(e.getTimeStamp))
+      "timestamp" -> (e => NumberValue(e.getTimeStamp)),
+      "ts" -> (e => StringValue(dateFormatter.format(Instant.ofEpochSecond(e.getTimeStamp))))
     )
 
 }
