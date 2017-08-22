@@ -46,7 +46,7 @@ class EncoderTest extends FlatSpec with MustMatchers { self =>
     encoder.encode(event(ts = 12345L))
 
     format.receivedValues must equal(
-      Seq("timestamp" -> NumberValue(12345L), "ts" -> StringValue("1970-01-01T03:25:45Z"))
+      Seq("timestamp" -> NumberValue(12345L), "ts" -> StringValue("1970-01-01T00:00:12.345Z"))
     )
   }
 
